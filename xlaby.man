@@ -1,0 +1,217 @@
+.TH XLABY 6 "01 DEC 1997"
+.SH NAME
+xlaby \- X Labyrinth, the aMAZEment
+.SH SYNOPSIS
+.B xlaby
+[
+.I options
+]
+.SH DESCRIPTION
+.PP
+.I X Labyrinth
+is a labyrinth game under X11 that is played directly with the
+mouse pointer: the walls block the pointer's movement on
+the screen.
+.PP
+The goal of the game is to retrieve the four colored squares:
+to retrieve a square, it is sufficient to move the pointer
+over it, and it will disappear. However, to make things more
+infuriating, the squares have to be taken in the following
+order: red, yellow, green and blue. When the blue square is
+obtained, the game is won.
+.PP
+Unless otherwise specified (see
+.B OPTIONS
+below), it is possible to quit the game at any moment by pressing
+.B Q
+or
+.B escape
+and to suspend the game by pressing
+.BR Z
+or
+.BR tab
+(same key to resume).
+.PP
+If the maze window is suddenly obscured or changes size or
+position, it is possible to restore it to the correct
+position, size and visibility by pressing the space bar.
+.PP
+It is possible to chose between three types of maze building
+algorithms (see
+.B OPTIONS
+below): the "tree", "flood" and "chain" maze.
+.PP
+Exit code is 1 in case of error, 42 if the maze was successfully
+solved, and 0 otherwise. This can be useful in shell scripts
+for example to test the user's patience.
+.SH OPTIONS
+.TP
+.BR \-b ", " \-\-blind
+Run in blind mode. You don't get to see the walls of the maze,
+which makes it slightly harder.
+.TP
+.BR \-\-build ", " \-\-slowbuild
+Show the maze as it is being built. This is the best possible
+explanation of how the maze building algorithms work.
+.TP
+.BR \-c ", " \-\-chain
+Use the chain maze building algorithm: the maze is built by
+a self-avoiding random walk that starts from start every time
+it is blocked.
+.TP
+.B \-\-copying
+Display copying information and exit. See the file
+.B COPYING
+for more information.
+.TP
+.BR \-d ", " \-\-discover
+Run in semi-blind mode. The walls become visible only when you
+bump into them.
+.TP
+.BI "\-display " name
+Run on the specified display. Overrides the
+.B DISPLAY
+environment variable.
+.TP
+.B \-\-grabkbd
+Grab the keyboard as long as the game is being played. This
+inhibits window manager hotkeys for example; frequently used
+in conjunction with
+.B \-\-noquit
+.TP
+.BR \-f ", " \-\-flood
+Use the flood maze building algorithm: the maze is built by
+a self-avoiding random walk that starts from the last possible
+place every time it is blocked.
+.TP
+.BR \-h ", " \-\-help
+Print help information and exit.
+.TP
+.BR \-i ", " \-\-info
+Print game instructions and exit.
+.TP
+.B \-\-noplay
+Do not play the game (only display the generated maze).
+.TP
+.B \-\-noquit
+Forbid quitting the game (i.e. disables the
+.B Q
+and
+.B Z
+keys). Beware, this can be dangerous, especially when used in
+conjunction with
+.BR \-\-grabkbd .
+.TP
+.BR \-p ", " \-\-play
+Play the game. This option is compulsory (so that people won't
+accidentally start
+.B xlaby
+and then not know how to quit).
+.TP
+.BI \-\-pos " X Y"
+Define the X and Y position of the maze window. If this
+parameter is omitted (or invalid values are given),
+window position will be chosen at random.
+.TP
+.BR \-q ", " \-\-quantum
+Run in quantum mode: every time the pointer changes cell, it
+has a certain probability of doing a quantum leap to another
+position in the maze. It is uncertain whether that actually
+makes things easier or more difficult.
+.TP
+.BI "\-s, \-\-size " number
+Set the maze size.
+.I number
+is a number between 0 (very small) and 9 (huge). Note that
+the maze will always fit in the screen: if it is too large,
+the cell size will be reduced, and if that is still not sufficient,
+the maze dimensions will also be reduced. Note that
+.B xlaby
+will not run if the dimension of the root window is less
+than 40x40 or so :-(
+.TP
+.BR \-t ", " \-\-tree
+Use the tree maze generating algorithm: the maze is built by
+growing trees of walls from the edges and the center. It is
+very easy to solve, and also quite slow for large sizes.
+.TP
+.BR \-v ", " \-\-version
+Print version number and exit.
+.TP
+.BR \-w ", " \-\-warranty
+Print absence of warranty and exit. See the file
+.B COPYING
+for more information.
+.PP
+Note that multiple options cannot be concatenated, so
+.RS
+.B xlaby \-pt
+.RE
+is not valid: use
+.RS
+.B xlaby \-p \-t
+.RE
+instead.
+.PP
+Also note that standard X toolkit options are
+.I not
+recognized, as the program uses low-level X.
+.SH ENVIRONMENT
+.IP DISPLAY
+The default display name.
+.SH RESOURCES
+.I None!
+.SH BUGS
+.PP
+Option syntax is very non-standard. Having to use the
+.B \-\-play
+option is a pain.
+.PP
+X resources are not recognized. The colors
+cannot be specified. Only the position of the window
+can be given, and it does not interact properly with
+the window manager (only I do not trust WMs).
+.PP
+There are probably cases which I overlooked and in
+which the window is not fully visible.
+Unfortunately, as far as I know,
+the Xlib does not furnish any easy way of making
+.I absolutely
+sure a window is entirely visible.
+.PP
+I guess it must look awful on a monochrome display.
+.PP
+The tree maze is outrageously slow for large maze sizes.
+.PP
+The game is about unplayable when run across a network
+as the mouse cursor may freeze for a long time on a
+cell boundary.
+.PP
+There is no high score table. So the name of the first
+person who completes the size 9 chain maze in blind mode
+shall not go down in History (still, if you do, send
+me a mail).
+.PP
+The blue square (randomly placed) may overlap another one.
+Actually, this is more a feature than a bug.
+.PP
+There is no way to change the number, colors, or position
+of the squares.
+.PP
+The man page does not describe all the bugs (otherwise this
+section would be the longest by far).
+.SH AUTHORS
+.PP
+Peter Horvai (peter.horvai@ens.fr) for the initial idea
+and chain maze algorithm.
+.PP
+David Madore (david.madore@ens.fr) for most of the programming,
+the tree maze algorithm, and this man page.
+.PP
+Special thanks to Mladen Dimitrov for the flood maze algorithm.
+.SH COPYING
+GNU public license. See the file
+.B COPYING
+for more information.
+.SH "SEE ALSO"
+.BR maze (1)

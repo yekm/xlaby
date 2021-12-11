@@ -1,0 +1,29 @@
+/************************************************
+ *         xlaby - daemonic X labyrinth         *
+ * Copyright (c) P.Horvai (peter.horvai@ens.fr) *
+ *           and D.Madore (david.madore@ens.fr) *
+ *           Version 2.01 - 1997 Dec 01         *
+ ************************************************/
+
+# Call xmkmf to produce the makefile
+
+# Set this to the user and group who should own xlaby
+OWNER = games
+GROUP = games
+
+INSTALLFLAGS = -c -o $(OWNER) -g $(GROUP)
+
+# This will install xlaby in /usr/local/bin
+# and man page in /usr/local/man/man6
+DESTDIR = /usr/local
+BINDIR = /bin
+MANPATH = /man
+MANSOURCEPATH = $(MANPATH)/man
+MANDIR = $(MANSOURCEPATH)6
+MANSUFFIX = 6x
+
+LOCAL_LIBRARIES = $(XONLYLIB)
+
+SimpleProgramTarget(xlaby)
+
+install:: install.man

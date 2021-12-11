@@ -1,0 +1,28 @@
+v.1.0.0 : first version of xlaby
+v.1.0.1 : changed rand() to random() (didn't work except on Linux
+          where one is an alias for the other)
+v.1.0.2 : used a loop to grab pointer
+v.1.1.0 : introduced --quantum, --discover and --blind
+v.1.1.1 : use a specific mouse cursor rather than the default (which
+          is not always well adapted)
+v.1.2.0 : introduced the flood maze
+v.1.3.0 : introduced maze size options
+v.1.4.0 : introduced the chain maze (Peter's idea)
+v.1.4.1 : corrected a bug in flood and chain algorithms
+v.1.4.2 : better handling of colors (still not very satisfactory)
+v.1.5.0 : introduced --noplay mode and the possibility of suspending
+          the game (certain bugs still have to be corrected)
+v.1.5.1 : used VisibilityNotify events to make sure window stays in
+          view while pointer is being grabbed; also stopped grabbing
+          the pointer just because it enters the window (have to type
+          <Tab> instead)
+v.1.6.0 : something was added, and then taken out - so the changes
+          are very small
+v.1.6.1 : now works correctly in color depths other than 8
+v.1.6.2 : now we use XKeycodeToKeysym() rather than XGetKeyboardMapping()
+v.2.0.0 : - now comes in tar.gz format, with a makefile and man page
+          - chain maze is now the default
+          - return code indicates whether maze was solved
+          - corrected a few minor bugs in size computations
+v.2.0.1 : corrected a few typos and augmented the man page; added the
+          space key and the possibility to specify the window position
