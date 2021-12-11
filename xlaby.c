@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -45,6 +46,7 @@ int subx, suby;   /* The current cell                 */
 char rungame;     /* Is there something to do?        */
 char nogame;      /* Was --noplay specified?          */
 char noquit;      /* Was --noquit specified?          */
+char konly;       /* Was --keyboard-only specified?   */
 char grabkbd;     /* Was --grabkbd specified?         */
 char slowbuild;   /* Was --build specified?           */
 char quantum;     /* Was --quantum specified?         */
@@ -85,7 +87,7 @@ Pixmap pm;        /* Backup store of maze window      */
 Cursor curs;      /* Cursor used                      */
 
 /* Various colors */
-XColor c_back, c_wall, c_goal[MAZEGOALS];
+XColor c_back, c_wall, c_self, c_goal[MAZEGOALS];
 
 char *wname = "X Labyrinth - the aMAZEment"; /* The window name */
 
@@ -470,6 +472,10 @@ void redraw(int cx, int cy, int ch, int cv)
                      goals[i].y * cellheight + 2, cellwidth - 3,
                      cellheight - 3);
     }
+  XSetForeground(dpy, gc, c_self.pixel);
+  XFillRectangle(dpy, pm, gc, subx * cellwidth + 2,
+                  suby * cellheight + 2, cellwidth - 3,
+                  cellheight - 3);
 }
 
 void refresh(int x, int y, unsigned int wd, unsigned int hg)
@@ -680,6 +686,7 @@ void parseargs(int argc, char **argv)
   int i;
   rungame = 0;
   noquit = 0;
+  konly = 0;
   grabkbd = 0;
   quantum = 0;
   visibility = 0;
@@ -700,6 +707,9 @@ void parseargs(int argc, char **argv)
     } else if ((strcmp(argv[i], "--no-quit") == 0) ||
                (strcmp(argv[i], "--noquit") == 0)) {
       noquit = 1;
+    } else if ((strcmp(argv[i], "-k") == 0) ||
+               (strcmp(argv[i], "--keyboard-only") == 0)) {
+      konly = 1;
     } else if ((strcmp(argv[i], "--grabkbd") == 0)) {
       grabkbd = 1;
     } else if ((strcmp(argv[i], "--build") == 0) ||
@@ -917,6 +927,12 @@ void xgetcolors(void)
     c_wall.blue = 6554;
   }
   getthecolor(&c_wall);
+  if (!XLookupColor(dpy, cmap, "Orange", &c_garbage, &c_self)) {
+    c_wall.red = 6554;
+    c_wall.green = 6554/3;
+    c_wall.blue = 0;
+  }
+  getthecolor(&c_self);
   if (!XLookupColor(dpy, cmap, "White", &c_garbage, &c_goal[0])) {
     c_goal[0].red = 65535;
     c_goal[0].green = 65535;
@@ -1007,6 +1023,9 @@ void grabbit(void)
 /* This actually grabs the pointer (and keyboard). */
 {
   grabbing = 1;
+
+  if (konly)
+    return;
   /* The following commands should make _sure_ the window and game are in
    * a playable situation */
   makevisible();
@@ -1016,7 +1035,7 @@ void grabbit(void)
                       GrabModeAsync, subw, curs, CurrentTime) != GrabSuccess)
     ; /* For some reason, we need a loop here */
   /* It may screw up the machine, though. I should add a timeout. */
-  XRaiseWindow(dpy, myw); /* "Deux précautions valent mieux qu'une" */
+  XRaiseWindow(dpy, myw); /* "Deux prï¿½cautions valent mieux qu'une" */
   if (grabkbd) {
     sleep(1);
     XSync(dpy, False);
@@ -1040,6 +1059,83 @@ void youwon(void)
   fprintf(stdout, "Congratulations! You won!\n");
   /* A bit dry, perhaps... */
   quit(42);
+}
+
+void motion(int dx, int dy) {
+  if (subx + dx < 0)
+    dx = 0;
+  if (suby + dy < 0)
+    dy = 0;
+  if (subx + dx >= cellhoriz)
+    dx = 0;
+  if (suby + dy >= cellvert)
+    dy = 0;
+  if ((dx == -1) && (wallv[subx][suby])) {
+    dx = 0;
+    wallv[subx][suby] = 2;
+  }
+  if ((dy == -1) && (wallh[subx][suby])) {
+    dy = 0;
+    wallh[subx][suby] = 2;
+  }
+  if ((dx == 1) && (wallv[subx + 1][suby])) {
+    dx = 0;
+    wallv[subx + 1][suby] = 2;
+  }
+  if ((dy == 1) && (wallh[subx][suby + 1])) {
+    dy = 0;
+    wallh[subx][suby + 1] = 2;
+  }
+  /*
+    * The following lines are used to avoid the case where the pointer jumps
+    * across a corner "seen from the outside". I would like something
+    * cleaner, but I didn't find it.
+    */
+  if ((dx == 1) && (dy == 1) && (wallh[subx + 1][suby + 1]) &&
+      (wallv[subx + 1][suby + 1])) {
+    dx = 0;
+    dy = 0;
+  }
+  if ((dx == -1) && (dy == 1) && (wallh[subx - 1][suby + 1]) &&
+      (wallv[subx][suby + 1])) {
+    dx = 0;
+    dy = 0;
+  }
+  if ((dx == 1) && (dy == -1) && (wallh[subx + 1][suby]) &&
+      (wallv[subx + 1][suby - 1])) {
+    dx = 0;
+    dy = 0;
+  }
+  if ((dx == -1) && (dy == -1) && (wallh[subx - 1][suby]) &&
+      (wallv[subx][suby - 1])) {
+    dx = 0;
+    dy = 0;
+  }
+  if (visibility == 1) { /* In "discover" mode, we need to refresh the area
+                            around the mouse */
+    redraw(subx - 1, suby - 1, 3, 3);
+    refresh((subx - 1) * cellwidth, (suby - 1) * cellwidth, 3 * cellwidth,
+            3 * cellheight);
+  }
+  subx += dx;
+  suby += dy;
+  //printf("%d+%d:%d+%d ", subx, dx, suby, dy);
+  //fflush(stdout);
+  if ((!dx) && (!dy))
+    return;
+  if (quantum && ((random() % 1000000) <= QPROB)) {
+    subx = random() % cellhoriz; /* Do a quantum leap */
+    suby = random() % cellvert;
+  }
+  //XMoveWindow(dpy, subw, subx * cellwidth, suby * cellheight);
+  if ((subx == goals[reached + 1].x) && (suby == goals[reached + 1].y)) {
+    reached++;
+  }
+  redraw(subx - 1, suby - 1, 3, 3);
+  refresh((subx - 1) * cellwidth, (suby - 1) * cellwidth, 3 * cellwidth,
+          3 * cellheight);
+  if (reached == MAZEGOALS - 1)
+    youwon();
 }
 
 void mainloop(void)
@@ -1076,7 +1172,8 @@ void mainloop(void)
 #endif
       break;
     case KeyPress:
-      key = XKeycodeToKeysym(dpy, evt.xkey.keycode, evt.xkey.state);
+      //key = XKeycodeToKeysym(dpy, evt.xkey.keycode, evt.xkey.state);
+      key = XLookupKeysym(&evt.xkey, 0);
       if (((key == XK_Escape) || (key == XK_Q) || (key == XK_q)) && (!noquit))
         quit(0);
       if (((key == XK_Tab) || (key == XK_Z) || (key == XK_z)) &&
@@ -1087,12 +1184,23 @@ void mainloop(void)
           grabbit();
       } else if (key == XK_space)
         makevisible();
+
+      if (key == XK_Up)
+        dy = -1;
+      if (key == XK_Down)
+        dy = 1;
+      if (key == XK_Left)
+        dx = -1;
+      if (key == XK_Right)
+        dx = 1;
+      motion(dx, dy);
+      dx = 0; dy = 0;
       break;
     case KeyRelease:
       /* I don't use that. But I might, some day */
       break;
     case MotionNotify:
-      if (!grabbing)
+      if (!grabbing || konly)
         break; /* Don't move subwindow while not playing game */
       if (evt.xmotion.x == 0)
         dx = -1;
@@ -1108,77 +1216,7 @@ void mainloop(void)
         dy = 0;
       if ((!dx) && (!dy))
         break;
-      if (subx + dx < 0)
-        dx = 0;
-      if (suby + dy < 0)
-        dy = 0;
-      if (subx + dx >= cellhoriz)
-        dx = 0;
-      if (suby + dy >= cellvert)
-        dy = 0;
-      if ((dx == -1) && (wallv[subx][suby])) {
-        dx = 0;
-        wallv[subx][suby] = 2;
-      }
-      if ((dy == -1) && (wallh[subx][suby])) {
-        dy = 0;
-        wallh[subx][suby] = 2;
-      }
-      if ((dx == 1) && (wallv[subx + 1][suby])) {
-        dx = 0;
-        wallv[subx + 1][suby] = 2;
-      }
-      if ((dy == 1) && (wallh[subx][suby + 1])) {
-        dy = 0;
-        wallh[subx][suby + 1] = 2;
-      }
-      /*
-       * The following lines are used to avoid the case where the pointer jumps
-       * across a corner "seen from the outside". I would like something
-       * cleaner, but I didn't find it.
-       */
-      if ((dx == 1) && (dy == 1) && (wallh[subx + 1][suby + 1]) &&
-          (wallv[subx + 1][suby + 1])) {
-        dx = 0;
-        dy = 0;
-      }
-      if ((dx == -1) && (dy == 1) && (wallh[subx - 1][suby + 1]) &&
-          (wallv[subx][suby + 1])) {
-        dx = 0;
-        dy = 0;
-      }
-      if ((dx == 1) && (dy == -1) && (wallh[subx + 1][suby]) &&
-          (wallv[subx + 1][suby - 1])) {
-        dx = 0;
-        dy = 0;
-      }
-      if ((dx == -1) && (dy == -1) && (wallh[subx - 1][suby]) &&
-          (wallv[subx][suby - 1])) {
-        dx = 0;
-        dy = 0;
-      }
-      if (visibility == 1) { /* In "discover" mode, we need to refresh the area
-                                around the mouse */
-        redraw(subx - 1, suby - 1, 3, 3);
-        refresh((subx - 1) * cellwidth, (suby - 1) * cellwidth, 3 * cellwidth,
-                3 * cellheight);
-      }
-      if ((!dx) && (!dy))
-        break;
-      if (quantum && ((random() % 1000000) <= QPROB)) {
-        subx = random() % cellhoriz; /* Do a quantum leap */
-        suby = random() % cellvert;
-      } else
-        subx += dx;
-      suby += dy;
-      XMoveWindow(dpy, subw, subx * cellwidth, suby * cellheight);
-      if ((subx == goals[reached + 1].x) && (suby == goals[reached + 1].y)) {
-        reached++;
-        redraw(subx, suby, 1, 1);
-        refresh(subx * cellwidth, suby * cellwidth, cellwidth, cellheight);
-      }
-      if (reached == MAZEGOALS - 1)
-        youwon();
+      motion(dx, dy);
       break;
     }
   }
