@@ -87,13 +87,15 @@ Pixmap pm;        /* Backup store of maze window      */
 Cursor curs;      /* Cursor used                      */
 
 /* Various colors */
-XColor c_back, c_wall, c_self, c_goal[MAZEGOALS];
+XColor c_back, c_wall, c_self, c_been, c_goal[MAZEGOALS];
 
 char *wname = "X Labyrinth - the aMAZEment"; /* The window name */
 
 char wallh[MAXHORIZ][MAXVERT]; /* Horizontal walls of the maze           */
 char wallv[MAXHORIZ][MAXVERT]; /* Vertical walls of the maze             */
 /*  0 means no wall, 1 means a wall, and 2 means a "known" wall */
+
+char been[MAXHORIZ][MAXVERT] = {0};
 
 int reached; /* Last goal reached                */
 struct {
@@ -463,6 +465,14 @@ void redraw(int cx, int cy, int ch, int cv)
       if (wallv[i][j] > visibility)
         XFillRectangle(dpy, pm, gc, i * cellwidth, j * cellheight, 1,
                        cellheight);
+    }
+  XSetForeground(dpy, gc, c_been.pixel);
+  for (i = cx; i < cmx; i++)
+    for (j = cy; j < cmy; j++) {
+      if (been[i][j] > 0)
+        XFillRectangle(dpy, pm, gc, i * cellwidth + 2,
+                        j * cellheight + 2, cellwidth - 3,
+                        cellheight - 3);
     }
   for (i = MAZEGOALS - 1; i > reached; i--)
     if ((goals[i].x >= cx) && (goals[i].y >= cy) && (goals[i].x < cmx) &&
@@ -928,11 +938,13 @@ void xgetcolors(void)
   }
   getthecolor(&c_wall);
   if (!XLookupColor(dpy, cmap, "Orange", &c_garbage, &c_self)) {
-    c_wall.red = 6554;
-    c_wall.green = 6554/3;
-    c_wall.blue = 0;
+    exit(2);
   }
   getthecolor(&c_self);
+  if (!XLookupColor(dpy, cmap, "LightGrey", &c_garbage, &c_been)) {
+    exit(2);
+  }
+  getthecolor(&c_been);
   if (!XLookupColor(dpy, cmap, "White", &c_garbage, &c_goal[0])) {
     c_goal[0].red = 65535;
     c_goal[0].green = 65535;
@@ -1117,8 +1129,10 @@ void motion(int dx, int dy) {
     refresh((subx - 1) * cellwidth, (suby - 1) * cellwidth, 3 * cellwidth,
             3 * cellheight);
   }
+  been[subx][suby] = 1;
   subx += dx;
   suby += dy;
+  been[subx][suby] = 2;
   //printf("%d+%d:%d+%d ", subx, dx, suby, dy);
   //fflush(stdout);
   if ((!dx) && (!dy))
